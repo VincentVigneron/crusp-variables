@@ -3,19 +3,17 @@ use crate::domains::{
     AssignableDomain, EqualDomain, FiniteDomain, OrderedPrunableDomain,
     FromRangeDomain, FromValuesDomain, IterableDomain, OrderedDomain, PrunableDomain,
 };
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 use crate::domains::{
-    AssignableDomainEvents, EqualDomainEvents,
-    OrderedDomainEvents,
-    OrderedPrunableDomainEvents, PrunableDomainEvents,
+    AssignableDomainObserver, EqualDomainObserver,
+    OrderedDomainObserver,
+    OrderedPrunableDomainObserver, PrunableDomainObserver,
 };
-#[cfg(feature = "graph")]
-use crate::{CruspVariable};
+#[cfg(feature = "observer")]
+use crate::{CruspVariable, VariableObserver};
 use crate::{Variable, VariableError};
 use crusp_core::VariableId;
 use crusp_core::{unwrap_first, unwrap_last};
-#[cfg(feature = "graph")]
-use crusp_graph::InputEventHandler;
 use num::One;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -120,7 +118,7 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 impl<T> CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -147,27 +145,25 @@ where
         self.domain.clear();
     }
 
-    fn domain_change<Events>(
+    fn domain_change<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         prev_min: T,
         prev_max: T,
         prev_size: usize,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if self.domain.is_empty() {
             self.invalidate();
-            Err(VariableError::DomainWipeout)
+            observer.push_error(self.id, VariableError::DomainWipeout)
         } else if self.size() == prev_size {
             Ok(IntVariableState::NoChange)
         } else if *self.unchecked_min() != prev_min || *self.unchecked_max() != prev_max {
-            events.notify(&self.id, &IntVariableState::BoundsChange);
-            Ok(IntVariableState::BoundsChange)
+            observer.push_change(self.id, IntVariableState::BoundsChange)
         } else {
-            events.notify(&self.id, &IntVariableState::ValuesChange);
-            Ok(IntVariableState::ValuesChange)
+            observer.push_change(self.id, IntVariableState::ValuesChange)
         }
     }
 }
@@ -249,22 +245,22 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
-impl<T> AssignableDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
+#[cfg(feature = "observer")]
+impl<T> AssignableDomainObserver<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
 {
-    fn set_value<Events>(
+    fn set_value<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: T,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if *self.unchecked_min() > value || *self.unchecked_max() < value {
             //self.invalidate();
-            return Err(VariableError::DomainWipeout);
+            return observer.push_error(self.id, VariableError::DomainWipeout)
         }
         let var_value = self.value();
         match var_value {
@@ -274,12 +270,11 @@ where
                 match found_value {
                     Ok(_) => {
                         self.domain = vec![value];
-                        events.notify(&self.id, &IntVariableState::BoundsChange);
-                        Ok(IntVariableState::BoundsChange)
+                        observer.push_change(self.id, IntVariableState::BoundsChange)
                     }
                     _ => {
                         self.invalidate();
-                        Err(VariableError::DomainWipeout)
+                        observer.push_error(self.id, VariableError::DomainWipeout)
                     }
                 }
             }
@@ -304,7 +299,7 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 impl<T> Variable<T> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -322,7 +317,7 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 impl<T> CruspVariable<T> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -341,7 +336,7 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 impl<T> FiniteDomain<T> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -411,8 +406,8 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
-impl<T> OrderedDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
+#[cfg(feature = "observer")]
+impl<T> OrderedDomainObserver<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
 {
@@ -423,83 +418,79 @@ where
         self.domain.last()
     }
 
-    fn strict_upperbound<Events>(
+    fn strict_upperbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         ub: T,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if *self.unchecked_max() < ub {
             Ok(IntVariableState::NoChange)
         } else if *self.unchecked_min() >= ub {
-            Err(VariableError::DomainWipeout)
+            observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().rposition(|&val| val < ub).unwrap();
             self.domain.truncate(index + 1);
-            events.notify(&self.id, &IntVariableState::BoundsChange);
-            Ok(IntVariableState::BoundsChange)
+            observer.push_change(self.id, IntVariableState::BoundsChange)
         }
     }
 
-    fn weak_upperbound<Events>(
+    fn weak_upperbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         ub: T,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if *self.unchecked_max() <= ub {
             Ok(IntVariableState::NoChange)
         } else if *self.unchecked_min() > ub {
-            Err(VariableError::DomainWipeout)
+            observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().rposition(|&val| val <= ub).unwrap();
             self.domain.truncate(index + 1);
-            events.notify(&self.id, &IntVariableState::BoundsChange);
-            Ok(IntVariableState::BoundsChange)
+            observer.push_change(self.id,  IntVariableState::BoundsChange)
         }
     }
 
-    fn strict_lowerbound<Events>(
+    fn strict_lowerbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         lb: T,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if *self.unchecked_min() > lb {
             Ok(IntVariableState::NoChange)
         } else if *self.unchecked_max() <= lb {
-            Err(VariableError::DomainWipeout)
+            observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().position(|&val| val > lb).unwrap();
             self.domain.drain(0..index);
-            events.notify(&self.id, &IntVariableState::BoundsChange);
-            Ok(IntVariableState::BoundsChange)
+            observer.push_change(self.id,  IntVariableState::BoundsChange)
         }
     }
 
-    fn weak_lowerbound<Events>(
+    fn weak_lowerbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         lb: T,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if *self.unchecked_min() >= lb {
             Ok(IntVariableState::NoChange)
         } else if *self.unchecked_max() < lb {
-            Err(VariableError::DomainWipeout)
+            observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().position(|&val| val >= lb).unwrap();
             self.domain.drain(0..index);
-            events.notify(&self.id, &IntVariableState::BoundsChange);
-            Ok(IntVariableState::BoundsChange)
+            observer.push_change(self.id,  IntVariableState::BoundsChange)
         }
     }
 }
@@ -562,19 +553,19 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
-impl<T> EqualDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
+#[cfg(feature = "observer")]
+impl<T> EqualDomainObserver<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
 {
     // Distinction between ValuesChange and BoundsChange
-    fn equal<Events>(
+    fn equal<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: &mut Self,
     ) -> Result<(IntVariableState, IntVariableState), VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         use std::collections::BTreeSet;
         let s1: BTreeSet<_> = self.domain.iter().copied().collect();
@@ -584,6 +575,8 @@ where
         if domain.is_empty() {
             self.invalidate();
             value.invalidate();
+            let _err = observer.push_error(self.id, VariableError::DomainWipeout);
+            let _err = observer.push_error(value.id, VariableError::DomainWipeout);
             return Err(VariableError::DomainWipeout);
         }
         let (ok_self, ok_value) = {
@@ -602,33 +595,33 @@ where
         };
 
         if ok_self != IntVariableState::NoChange {
-            events.notify(&self.id, &ok_self);
+            let _change = observer.push_change(self.id, ok_self);
         }
 
         if ok_value != IntVariableState::NoChange {
-            events.notify(&value.id, &ok_value);
+            let _change = observer.push_change(value.id, ok_value);
         }
         self.domain = domain.clone();
         value.domain = domain;
         Ok((ok_self, ok_value))
     }
-    fn not_equal<Events>(
+    fn not_equal<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: &mut CruspIntVarValues<T>,
     ) -> Result<(IntVariableState, IntVariableState), VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         match self.value() {
             Some(val) => {
-                let ok_value = value.remove_value(events, *val)?;
+                let ok_value = value.remove_value(observer, *val)?;
                 Ok((IntVariableState::NoChange, ok_value))
             }
             _ => match value.value() {
                 Some(val) => {
-                    let ok_self = self.remove_value(events, *val)?;
-                    events.notify(&self.id, &ok_self);
+                    let ok_self = self.remove_value(observer, *val)?;
+                    let _change = observer.push_change(self.id, ok_self);
                     Ok((ok_self, IntVariableState::NoChange))
                 }
                 _ => Ok((IntVariableState::NoChange, IntVariableState::NoChange)),
@@ -698,34 +691,34 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
-impl<T> PrunableDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
+#[cfg(feature = "observer")]
+impl<T> PrunableDomainObserver<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
 {
-    fn in_values<Events, Values>(
+    fn in_values<Observer, Values>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         values: Values,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
         Values: IntoIterator<Item = T>,
     {
         let values: Vec<_> = values.into_iter().collect();
         let mut values: Vec<_> = values.into_iter().collect();
         values.sort();
-        self.in_sorted_values(events, values.into_iter())
+        self.in_sorted_values(observer, values.into_iter())
     }
 
     // check change function (equality, bounds, values, nochange...)
-    fn remove_value<Events>(
+    fn remove_value<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: T,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
     {
         if *self.unchecked_min() > value && *self.unchecked_max() < value {
             return Ok(IntVariableState::NoChange);
@@ -736,45 +729,43 @@ where
             Ok(index) => {
                 self.domain.remove(index);
                 if self.size() == 0 {
-                    Err(VariableError::DomainWipeout)
+                    observer.push_error(self.id, VariableError::DomainWipeout)
                 } else if self.min().copied() != min || self.max().copied() != max {
-                    events.notify(&self.id, &IntVariableState::BoundsChange);
-                    Ok(IntVariableState::BoundsChange)
+                    observer.push_change(self.id, IntVariableState::BoundsChange)
                 } else {
-                    events.notify(&self.id, &IntVariableState::ValuesChange);
-                    Ok(IntVariableState::ValuesChange)
+                    observer.push_change(self.id, IntVariableState::ValuesChange)
                 }
             }
             _ => Ok(IntVariableState::NoChange),
         }
     }
 
-    fn remove_if<Events, Predicate>(
+    fn remove_if<Observer, Predicate>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         mut pred: Predicate,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
         Predicate: FnMut(&T) -> bool,
     {
         let (min, max, size) = (*self.unchecked_min(), *self.unchecked_max(), self.size());
         self.domain.retain(|v| !pred(v));
-        self.domain_change(events, min, max, size)
+        self.domain_change(observer, min, max, size)
     }
 
-    fn retains_if<Events, Predicate>(
+    fn retains_if<Observer, Predicate>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         mut pred: Predicate,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
         Predicate: FnMut(&T) -> bool,
     {
         let (min, max, size) = (*self.unchecked_min(), *self.unchecked_max(), self.size());
         self.domain.retain(|v| pred(v));
-        self.domain_change(events, min, max, size)
+        self.domain_change(observer, min, max, size)
     }
 }
 
@@ -818,19 +809,19 @@ where
     }
 }
 
-#[cfg(feature = "graph")]
-impl<T> OrderedPrunableDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
+#[cfg(feature = "observer")]
+impl<T> OrderedPrunableDomainObserver<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
 {
     // Change to non-naive implementation
-    fn in_sorted_values<Events, Values>(
+    fn in_sorted_values<Observer, Values>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         values: Values,
     ) -> Result<IntVariableState, VariableError>
     where
-        Events: InputEventHandler<VariableId, IntVariableState>,
+        Observer: VariableObserver<IntVariableState>,
         Values: IntoIterator<Item = T>,
     {
         use std::collections::BTreeSet;
@@ -840,26 +831,24 @@ where
 
         if domain.is_empty() {
             self.invalidate();
-            return Err(VariableError::DomainWipeout);
+           return observer.push_error(self.id, VariableError::DomainWipeout);
         }
         let ok_self = {
             let mut check_change = |var: &mut CruspIntVarValues<T>, vid: VariableId| {
                 if var.size() == domain.len() {
-                    IntVariableState::NoChange
+                    Ok(IntVariableState::NoChange)
                 } else if *var.unchecked_min() != unwrap_first!(domain)
                     || *var.unchecked_max() != unwrap_last!(domain)
                 {
-                    events.notify(&vid, &IntVariableState::BoundsChange);
-                    IntVariableState::BoundsChange
+                    observer.push_change(vid, IntVariableState::BoundsChange)
                 } else {
-                    events.notify(&vid, &IntVariableState::ValuesChange);
-                    IntVariableState::ValuesChange
+                    observer.push_change(vid, IntVariableState::ValuesChange)
                 }
             };
             let vid = self.id;
             check_change(self, vid)
         };
         self.domain = domain;
-        Ok(ok_self)
+        ok_self
     }
 }

@@ -1,39 +1,27 @@
 use super::{Variable, VariableError, VariableState};
-#[cfg(feature = "graph")]
-use crusp_core::VariableId;
-#[cfg(feature = "graph")]
-use crusp_graph::{GraphEvent, InputEventHandler};
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
+use super::{VariableObserver};
+#[cfg(feature = "observer")]
 use std::marker::PhantomData;
 
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 #[derive(std::default::Default)]
-pub struct NoOpEvents<VState>
+pub struct NoOpObserver<VState>
 where
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
 {
     _state: PhantomData<VState>,
 }
 
-#[cfg(feature = "graph")]
-impl<VState> NoOpEvents<VState>
+#[cfg(feature = "observer")]
+impl<VState> NoOpObserver<VState>
 where
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
 {
     pub fn new() -> Self {
-        NoOpEvents {
+        NoOpObserver {
             _state: PhantomData,
         }
-    }
-}
-
-#[cfg(feature = "graph")]
-impl<VState> InputEventHandler<VariableId, VState> for NoOpEvents<VState>
-where
-    VState: VariableState + GraphEvent,
-{
-    fn notify(&mut self, _node: &VariableId, _event: &VState) -> bool {
-        true
     }
 }
 
@@ -65,25 +53,25 @@ where
 }
 
 /// Trait that defines variable that can be assigned to a specific value.
-#[cfg(feature = "graph")]
-pub trait AssignableDomainEvents<Type, VState>
+#[cfg(feature = "observer")]
+pub trait AssignableDomainObserver<Type, VState>
 where
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
 {
     /// Change the value of the variable.
     /// Returns an error of type `VariableError::DomainWipeout`
     /// if value is not inside the domain, otherwise returns the correct `VariableState`;
     ///
     /// # Argument
-    /// * `events` - An events handler which should call on any change.
+    /// * `Observer` - An Observer handler which should call on any change.
     /// * `value` - The value to assign.
-    fn set_value<Events>(
+    fn set_value<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: Type,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
+        Observer: VariableObserver<VState>;
 }
 
 /// Trait that defines variable which the underlying `Type` implements the `Ord`
@@ -119,10 +107,10 @@ where
 
 /// Trait that defines variable which the underlying `Type` implements the `Ord`
 /// trait (i.e. the underlying type is totally ordered).
-#[cfg(feature = "graph")]
-pub trait OrderedDomainEvents<Type, VState>: FiniteDomain<Type>
+#[cfg(feature = "observer")]
+pub trait OrderedDomainObserver<Type, VState>: FiniteDomain<Type>
 where
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
     Type: Ord + Eq,
 {
     /// Returns the minimal value of the domain.
@@ -143,34 +131,34 @@ where
         );
         self.max().expect(&error)
     }
-    fn strict_upperbound<Events>(
+    fn strict_upperbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         ub: Type,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
-    fn weak_upperbound<Events>(
+        Observer: VariableObserver<VState>;
+    fn weak_upperbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         ub: Type,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
-    fn strict_lowerbound<Events>(
+        Observer: VariableObserver<VState>;
+    fn strict_lowerbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         lb: Type,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
-    fn weak_lowerbound<Events>(
+        Observer: VariableObserver<VState>;
+    fn weak_lowerbound<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         lb: Type,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
+        Observer: VariableObserver<VState>;
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
@@ -192,34 +180,34 @@ where
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
-#[cfg(feature = "graph")]
-pub trait EqualDomainEvents<Type, VState, Other = Self>: FiniteDomain<Type>
+#[cfg(feature = "observer")]
+pub trait EqualDomainObserver<Type, VState, Other = Self>: FiniteDomain<Type>
 where
     Type: Eq,
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
 {
     /// Forces the domain of two variables to be equal.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn equal<Events>(
+    fn equal<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
+        Observer: VariableObserver<VState>;
     /// Forces the value of two varaibles to be distinct.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn not_equal<Events>(
+    fn not_equal<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
+        Observer: VariableObserver<VState>;
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
@@ -257,58 +245,58 @@ where
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
-#[cfg(feature = "graph")]
-pub trait PrunableDomainEvents<Type, VState>: FiniteDomain<Type>
+#[cfg(feature = "observer")]
+pub trait PrunableDomainObserver<Type, VState>: FiniteDomain<Type>
 where
     Type: Eq,
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
 {
     /// Forces the domain of the variables to be in the values past has parameter.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn in_values<Events, Values>(
+    fn in_values<Observer, Values>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         values: Values,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>,
+        Observer: VariableObserver<VState>,
         Values: IntoIterator<Item = Type>;
     /// Remove the value from the domain of a variable.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn remove_value<Events>(
+    fn remove_value<Observer>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         value: Type,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>;
+        Observer: VariableObserver<VState>;
     /// Remove the values of the domain that satisfies the predicate.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn remove_if<Events, Predicate>(
+    fn remove_if<Observer, Predicate>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         pred: Predicate,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>,
+        Observer: VariableObserver<VState>,
         Predicate: FnMut(&Type) -> bool;
     /// Remove the values of the domain that does not satisfy the predicate.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn retains_if<Events, Predicate>(
+    fn retains_if<Observer, Predicate>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         pred: Predicate,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>,
+        Observer: VariableObserver<VState>,
         Predicate: FnMut(&Type) -> bool;
 }
 
@@ -332,24 +320,24 @@ where
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
-#[cfg(feature = "graph")]
-pub trait OrderedPrunableDomainEvents<Type, VState>:
-    EqualDomainEvents<Type, VState> + OrderedDomainEvents<Type, VState>
+#[cfg(feature = "observer")]
+pub trait OrderedPrunableDomainObserver<Type, VState>:
+    EqualDomainObserver<Type, VState> + OrderedDomainObserver<Type, VState>
 where
     Type: Eq + Ord,
-    VState: VariableState + GraphEvent,
+    VState: VariableState ,
 {
     /// Forces the domain of the variables to be in the values past has parameter.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn in_sorted_values<Events, Values: Iterator<Item = Type>>(
+    fn in_sorted_values<Observer, Values: Iterator<Item = Type>>(
         &mut self,
-        events: &mut Events,
+        observer: &mut Observer,
         values: Values,
     ) -> Result<VState, VariableError>
     where
-        Events: InputEventHandler<VariableId, VState>,
+        Observer: VariableObserver<VState>,
         Values: IntoIterator<Item = Type>;
 }
 

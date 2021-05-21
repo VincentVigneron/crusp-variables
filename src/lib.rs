@@ -1,5 +1,5 @@
 use crusp_core::{Subsumed};
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 use crusp_core::{VariableId};
 use std::marker::PhantomData;
 
@@ -36,11 +36,21 @@ pub enum VariableError {
 }
 pub trait VariableState: std::ops::BitOr<Output = Self> + Subsumed + Sized {}
 
-#[cfg(feature = "graph")]
+#[cfg(feature = "observer")]
 pub trait CruspVariable<Type>: Variable<Type> {
     /// Returns the id of the variable
     fn id(&self) -> VariableId;
 }
+#[cfg(feature = "observer")]
+pub trait VariableObserver<State>
+    where State: VariableState
+{
+    // Result<(),Err> or Result<State, Err>f
+    fn push(&mut self, vid: VariableId, event: Result<State, VariableError>) -> Result<State, VariableError>;
+    fn push_change(&mut self, vid: VariableId, event: State) -> Result<State, VariableError>;
+    fn push_error(&mut self, vid: VariableId, event: VariableError) -> Result<State, VariableError>;
+}
+
 
 /// Trait for types that represent decision variables.
 /// A decision variable is variable along side with its domain of allowed values.
