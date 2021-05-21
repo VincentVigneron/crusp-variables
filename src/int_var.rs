@@ -1,5 +1,6 @@
 use super::VariableState;
 use crusp_core::{Mergeable, Nullable, Subsumed};
+#[cfg(feature = "graph")]
 use crusp_graph::GraphEvent;
 
 // IntVarBounds<T>    [min;max]
@@ -38,6 +39,7 @@ pub enum IntVariableState {
     UniversalError = 0b1110_0001,
 }
 
+#[cfg(feature = "graph")]
 impl GraphEvent for IntVariableState {}
 impl Nullable for IntVariableState {
     fn is_null(&self) -> bool {
