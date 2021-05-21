@@ -1,4 +1,4 @@
-use crusp_core::Subsumed;
+use crusp_core::{Subsumed, VariableId};
 use std::marker::PhantomData;
 
 pub mod bool_var;
@@ -33,6 +33,11 @@ pub enum VariableError {
     DomainWipeout,
 }
 pub trait VariableState: std::ops::BitOr<Output = Self> + Subsumed + Sized {}
+
+pub trait CruspVariable<Type>: Variable<Type> {
+    /// Returns the id of the variable
+    fn id(&self) -> VariableId;
+}
 
 /// Trait for types that represent decision variables.
 /// A decision variable is variable along side with its domain of allowed values.

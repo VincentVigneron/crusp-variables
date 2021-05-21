@@ -1,5 +1,6 @@
 use super::VariableState;
-use crusp_core::Subsumed;
+use crusp_core::{Mergeable, Nullable, Subsumed};
+use crusp_graph::GraphEvent;
 
 // IntVarBounds<T>    [min;max]
 // IntVarBitset<T>    Vec<[lb;ub]>
@@ -35,6 +36,28 @@ pub enum IntVariableState {
     /// When the value has been changed by an universal brancher
     UniversalChange = 0b1110_0000,
     UniversalError = 0b1110_0001,
+}
+
+impl GraphEvent for IntVariableState {}
+impl Nullable for IntVariableState {
+    fn is_null(&self) -> bool {
+        *self == IntVariableState::NoChange
+    }
+
+    fn null() -> Self {
+        IntVariableState::NoChange
+    }
+
+    fn nullify(&mut self) -> Self {
+        let prev = *self;
+        *self = IntVariableState::NoChange;
+        prev
+    }
+}
+impl Mergeable for IntVariableState {
+    fn merge(&self, rhs: Self) -> Self {
+        *self | rhs
+    }
 }
 
 impl std::ops::BitOr for IntVariableState {
