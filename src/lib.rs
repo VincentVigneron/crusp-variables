@@ -1,4 +1,6 @@
-use crusp_core::{Subsumed, VariableId};
+use crusp_core::{Subsumed};
+#[cfg(feature = "graph")]
+use crusp_core::{VariableId};
 use std::marker::PhantomData;
 
 pub mod bool_var;
@@ -34,6 +36,7 @@ pub enum VariableError {
 }
 pub trait VariableState: std::ops::BitOr<Output = Self> + Subsumed + Sized {}
 
+#[cfg(feature = "graph")]
 pub trait CruspVariable<Type>: Variable<Type> {
     /// Returns the id of the variable
     fn id(&self) -> VariableId;

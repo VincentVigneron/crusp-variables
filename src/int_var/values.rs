@@ -1,12 +1,20 @@
 use super::IntVariableState;
 use crate::domains::{
-    AssignableDomain, AssignableDomainEvents, EqualDomain, EqualDomainEvents, FiniteDomain,
-    FromRangeDomain, FromValuesDomain, IterableDomain, OrderedDomain, OrderedDomainEvents,
-    OrderedPrunableDomain, OrderedPrunableDomainEvents, PrunableDomain, PrunableDomainEvents,
+    AssignableDomain, EqualDomain, FiniteDomain, OrderedPrunableDomain,
+    FromRangeDomain, FromValuesDomain, IterableDomain, OrderedDomain, PrunableDomain,
 };
-use crate::{CruspVariable, Variable, VariableError};
+#[cfg(feature = "graph")]
+use crate::domains::{
+    AssignableDomainEvents, EqualDomainEvents,
+    OrderedDomainEvents,
+    OrderedPrunableDomainEvents, PrunableDomainEvents,
+};
+#[cfg(feature = "graph")]
+use crate::{CruspVariable};
+use crate::{Variable, VariableError};
 use crusp_core::VariableId;
 use crusp_core::{unwrap_first, unwrap_last};
+#[cfg(feature = "graph")]
 use crusp_graph::InputEventHandler;
 use num::One;
 
@@ -112,6 +120,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -240,6 +249,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> AssignableDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -294,6 +304,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> Variable<T> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -311,6 +322,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> CruspVariable<T> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -329,6 +341,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> FiniteDomain<T> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -397,6 +410,8 @@ where
         }
     }
 }
+
+#[cfg(feature = "graph")]
 impl<T> OrderedDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -547,6 +562,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> EqualDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -682,6 +698,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> PrunableDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,
@@ -801,6 +818,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<T> OrderedPrunableDomainEvents<T, IntVariableState> for CruspIntVarValues<T>
 where
     T: Copy + Clone + Eq + PartialEq + Ord + PartialOrd,

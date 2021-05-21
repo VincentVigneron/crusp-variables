@@ -1,8 +1,12 @@
 use super::{Variable, VariableError, VariableState};
+#[cfg(feature = "graph")]
 use crusp_core::VariableId;
+#[cfg(feature = "graph")]
 use crusp_graph::{GraphEvent, InputEventHandler};
+#[cfg(feature = "graph")]
 use std::marker::PhantomData;
 
+#[cfg(feature = "graph")]
 #[derive(std::default::Default)]
 pub struct NoOpEvents<VState>
 where
@@ -11,6 +15,7 @@ where
     _state: PhantomData<VState>,
 }
 
+#[cfg(feature = "graph")]
 impl<VState> NoOpEvents<VState>
 where
     VState: VariableState + GraphEvent,
@@ -22,6 +27,7 @@ where
     }
 }
 
+#[cfg(feature = "graph")]
 impl<VState> InputEventHandler<VariableId, VState> for NoOpEvents<VState>
 where
     VState: VariableState + GraphEvent,
@@ -59,6 +65,7 @@ where
 }
 
 /// Trait that defines variable that can be assigned to a specific value.
+#[cfg(feature = "graph")]
 pub trait AssignableDomainEvents<Type, VState>
 where
     VState: VariableState + GraphEvent,
@@ -112,6 +119,7 @@ where
 
 /// Trait that defines variable which the underlying `Type` implements the `Ord`
 /// trait (i.e. the underlying type is totally ordered).
+#[cfg(feature = "graph")]
 pub trait OrderedDomainEvents<Type, VState>: FiniteDomain<Type>
 where
     VState: VariableState + GraphEvent,
@@ -184,6 +192,7 @@ where
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
+#[cfg(feature = "graph")]
 pub trait EqualDomainEvents<Type, VState, Other = Self>: FiniteDomain<Type>
 where
     Type: Eq,
@@ -248,6 +257,7 @@ where
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
+#[cfg(feature = "graph")]
 pub trait PrunableDomainEvents<Type, VState>: FiniteDomain<Type>
 where
     Type: Eq,
@@ -322,6 +332,7 @@ where
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
+#[cfg(feature = "graph")]
 pub trait OrderedPrunableDomainEvents<Type, VState>:
     EqualDomainEvents<Type, VState> + OrderedDomainEvents<Type, VState>
 where
