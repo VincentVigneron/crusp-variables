@@ -1,12 +1,11 @@
 use super::IntVariableState;
 use crate::domains::{
-    AssignableDomain, EqualDomain, FiniteDomain, OrderedPrunableDomain,
-    FromRangeDomain, FromValuesDomain, IterableDomain, OrderedDomain, PrunableDomain,
+    AssignableDomain, EqualDomain, FiniteDomain, FromRangeDomain, FromValuesDomain, IterableDomain,
+    OrderedDomain, OrderedPrunableDomain, PrunableDomain,
 };
 #[cfg(feature = "observer")]
 use crate::domains::{
-    AssignableDomainObserver, EqualDomainObserver,
-    OrderedDomainObserver,
+    AssignableDomainObserver, EqualDomainObserver, OrderedDomainObserver,
     OrderedPrunableDomainObserver, PrunableDomainObserver,
 };
 #[cfg(feature = "observer")]
@@ -260,7 +259,7 @@ where
     {
         if *self.unchecked_min() > value || *self.unchecked_max() < value {
             //self.invalidate();
-            return observer.push_error(self.id, VariableError::DomainWipeout)
+            return observer.push_error(self.id, VariableError::DomainWipeout);
         }
         let var_value = self.value();
         match var_value {
@@ -452,7 +451,7 @@ where
         } else {
             let index = self.domain.iter().rposition(|&val| val <= *ub).unwrap();
             self.domain.truncate(index + 1);
-            observer.push_change(self.id,  IntVariableState::BoundsChange)
+            observer.push_change(self.id, IntVariableState::BoundsChange)
         }
     }
 
@@ -471,7 +470,7 @@ where
         } else {
             let index = self.domain.iter().position(|&val| val > *lb).unwrap();
             self.domain.drain(0..index);
-            observer.push_change(self.id,  IntVariableState::BoundsChange)
+            observer.push_change(self.id, IntVariableState::BoundsChange)
         }
     }
 
@@ -490,7 +489,7 @@ where
         } else {
             let index = self.domain.iter().position(|&val| val >= *lb).unwrap();
             self.domain.drain(0..index);
-            observer.push_change(self.id,  IntVariableState::BoundsChange)
+            observer.push_change(self.id, IntVariableState::BoundsChange)
         }
     }
 }
@@ -831,7 +830,7 @@ where
 
         if domain.is_empty() {
             self.invalidate();
-           return observer.push_error(self.id, VariableError::DomainWipeout);
+            return observer.push_error(self.id, VariableError::DomainWipeout);
         }
         let ok_self = {
             let mut check_change = |var: &mut CruspIntVarValues<T>, vid: VariableId| {

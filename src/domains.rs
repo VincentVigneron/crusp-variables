@@ -1,6 +1,6 @@
-use super::{Variable, VariableError, VariableState};
 #[cfg(feature = "observer")]
-use super::{VariableObserver};
+use super::VariableObserver;
+use super::{Variable, VariableError, VariableState};
 #[cfg(feature = "observer")]
 use std::marker::PhantomData;
 
@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 #[derive(std::default::Default)]
 pub struct NoOpObserver<VState>
 where
-    VState: VariableState ,
+    VState: VariableState,
 {
     _state: PhantomData<VState>,
 }
@@ -16,7 +16,7 @@ where
 #[cfg(feature = "observer")]
 impl<VState> NoOpObserver<VState>
 where
-    VState: VariableState ,
+    VState: VariableState,
 {
     pub fn new() -> Self {
         NoOpObserver {
@@ -56,7 +56,7 @@ where
 #[cfg(feature = "observer")]
 pub trait AssignableDomainObserver<Type, VState>
 where
-    VState: VariableState ,
+    VState: VariableState,
 {
     /// Change the value of the variable.
     /// Returns an error of type `VariableError::DomainWipeout`
@@ -110,7 +110,7 @@ where
 #[cfg(feature = "observer")]
 pub trait OrderedDomainObserver<Type, VState>: FiniteDomain<Type>
 where
-    VState: VariableState ,
+    VState: VariableState,
     Type: Ord + Eq,
 {
     /// Returns the minimal value of the domain.
@@ -184,7 +184,7 @@ where
 pub trait EqualDomainObserver<Type, VState, Other = Self>: FiniteDomain<Type>
 where
     Type: Eq,
-    VState: VariableState ,
+    VState: VariableState,
 {
     /// Forces the domain of two variables to be equal.
     ///
@@ -249,7 +249,7 @@ where
 pub trait PrunableDomainObserver<Type, VState>: FiniteDomain<Type>
 where
     Type: Eq,
-    VState: VariableState ,
+    VState: VariableState,
 {
     /// Forces the domain of the variables to be in the values past has parameter.
     ///
@@ -325,7 +325,7 @@ pub trait OrderedPrunableDomainObserver<Type, VState>:
     EqualDomainObserver<Type, VState> + OrderedDomainObserver<Type, VState>
 where
     Type: Eq + Ord,
-    VState: VariableState ,
+    VState: VariableState,
 {
     /// Forces the domain of the variables to be in the values past has parameter.
     ///
@@ -364,11 +364,11 @@ pub trait FromValuesDomain<Type>: FiniteDomain<Type> + Sized {
         Values: IntoIterator<Item = Type>;
 }
 
-
 #[cfg(feature = "observer")]
-pub trait BoundedDomainObserver<Type, VState, Other=Self>: OrderedDomainObserver<Type, VState>
+pub trait BoundedDomainObserver<Type, VState, Other = Self>:
+    OrderedDomainObserver<Type, VState>
 where
-    VState: VariableState ,
+    VState: VariableState,
     Type: Ord + Eq,
     Other: OrderedDomainObserver<Type, VState>,
 {
@@ -385,7 +385,8 @@ where
         observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
-            where Observer: VariableObserver<VState>
+    where
+        Observer: VariableObserver<VState>,
     {
         let state_self = self.strict_upperbound(observer, value.unchecked_max().clone())?;
         let state_value = value.strict_lowerbound(observer, self.unchecked_min().clone())?;
@@ -404,7 +405,8 @@ where
         observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
-            where Observer: VariableObserver<VState>
+    where
+        Observer: VariableObserver<VState>,
     {
         let state_self = self.weak_upperbound(observer, value.unchecked_max())?;
         let state_value = value.weak_lowerbound(observer, self.unchecked_min())?;
@@ -423,7 +425,8 @@ where
         observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
-            where Observer: VariableObserver<VState>
+    where
+        Observer: VariableObserver<VState>,
     {
         let state_self = self.strict_lowerbound(observer, value.unchecked_min())?;
         let state_value = value.strict_upperbound(observer, self.unchecked_max())?;
@@ -443,7 +446,8 @@ where
         observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
-            where Observer: VariableObserver<VState>
+    where
+        Observer: VariableObserver<VState>,
     {
         let state_self = self.weak_lowerbound(observer, value.unchecked_min())?;
         let state_value = value.weak_upperbound(observer, self.unchecked_max())?;
@@ -462,12 +466,13 @@ where
         observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
-            where Observer: VariableObserver<VState>
+    where
+        Observer: VariableObserver<VState>,
     {
-        let (x1,y1) = self.less_or_equal_than(observer, value)?;
-        let (x2,y2) = self.greater_or_equal_than(observer, value)?;
+        let (x1, y1) = self.less_or_equal_than(observer, value)?;
+        let (x2, y2) = self.greater_or_equal_than(observer, value)?;
 
-        Ok((x1|x2, y1|y2))
+        Ok((x1 | x2, y1 | y2))
     }
 
     fn equal_bounds<Observer>(
@@ -475,13 +480,14 @@ where
         observer: &mut Observer,
         value: &mut Other,
     ) -> Result<(VState, VState), VariableError>
-            where Observer: VariableObserver<VState>
+    where
+        Observer: VariableObserver<VState>,
     {
         let mut x = VState::null();
         let mut y = VState::null();
         loop {
-            let (x1,y1) = self.less_or_equal_than(observer, value)?;
-            let (x2,y2) = self.greater_or_equal_than(observer, value)?;
+            let (x1, y1) = self.less_or_equal_than(observer, value)?;
+            let (x2, y2) = self.greater_or_equal_than(observer, value)?;
             let new_x = x1 | x2;
             let new_y = y1 | y2;
             if (new_x == VState::null()) && (new_y == VState::null()) {

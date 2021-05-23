@@ -1,6 +1,6 @@
-use crusp_core::{Subsumed, Nullable};
 #[cfg(feature = "observer")]
-use crusp_core::{VariableId};
+use crusp_core::VariableId;
+use crusp_core::{Nullable, Subsumed};
 use std::marker::PhantomData;
 
 pub mod bool_var;
@@ -34,7 +34,10 @@ pub enum VariableError {
     /// The domain of the variable is empty.
     DomainWipeout,
 }
-pub trait VariableState: std::ops::BitOr<Output = Self> + Subsumed + Sized + Nullable + Eq + PartialEq {}
+pub trait VariableState:
+    std::ops::BitOr<Output = Self> + Subsumed + Sized + Nullable + Eq + PartialEq
+{
+}
 
 #[cfg(feature = "observer")]
 pub trait CruspVariable<Type>: Variable<Type> {
@@ -43,14 +46,19 @@ pub trait CruspVariable<Type>: Variable<Type> {
 }
 #[cfg(feature = "observer")]
 pub trait VariableObserver<State>
-    where State: VariableState
+where
+    State: VariableState,
 {
     // Result<(),Err> or Result<State, Err>f
-    fn push(&mut self, vid: VariableId, event: Result<State, VariableError>) -> Result<State, VariableError>;
+    fn push(
+        &mut self,
+        vid: VariableId,
+        event: Result<State, VariableError>,
+    ) -> Result<State, VariableError>;
     fn push_change(&mut self, vid: VariableId, event: State) -> Result<State, VariableError>;
-    fn push_error(&mut self, vid: VariableId, event: VariableError) -> Result<State, VariableError>;
+    fn push_error(&mut self, vid: VariableId, event: VariableError)
+        -> Result<State, VariableError>;
 }
-
 
 /// Trait for types that represent decision variables.
 /// A decision variable is variable along side with its domain of allowed values.
