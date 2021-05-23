@@ -99,10 +99,10 @@ where
         );
         self.max().expect(&error)
     }
-    fn strict_upperbound(&mut self, ub: Type) -> Result<VState, VariableError>;
-    fn weak_upperbound(&mut self, ub: Type) -> Result<VState, VariableError>;
-    fn strict_lowerbound(&mut self, lb: Type) -> Result<VState, VariableError>;
-    fn weak_lowerbound(&mut self, lb: Type) -> Result<VState, VariableError>;
+    fn strict_upperbound(&mut self, ub: &Type) -> Result<VState, VariableError>;
+    fn weak_upperbound(&mut self, ub: &Type) -> Result<VState, VariableError>;
+    fn strict_lowerbound(&mut self, lb: &Type) -> Result<VState, VariableError>;
+    fn weak_lowerbound(&mut self, lb: &Type) -> Result<VState, VariableError>;
 }
 
 /// Trait that defines variable which the underlying `Type` implements the `Ord`
@@ -134,28 +134,28 @@ where
     fn strict_upperbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        ub: Type,
+        ub: &Type,
     ) -> Result<VState, VariableError>
     where
         Observer: VariableObserver<VState>;
     fn weak_upperbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        ub: Type,
+        ub: &Type,
     ) -> Result<VState, VariableError>
     where
         Observer: VariableObserver<VState>;
     fn strict_lowerbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        lb: Type,
+        lb: &Type,
     ) -> Result<VState, VariableError>
     where
         Observer: VariableObserver<VState>;
     fn weak_lowerbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        lb: Type,
+        lb: &Type,
     ) -> Result<VState, VariableError>
     where
         Observer: VariableObserver<VState>;
@@ -362,4 +362,134 @@ pub trait FromValuesDomain<Type>: FiniteDomain<Type> + Sized {
     fn new_from_values<Values>(values: Values) -> Option<Self>
     where
         Values: IntoIterator<Item = Type>;
+}
+
+
+#[cfg(feature = "observer")]
+pub trait BoundedDomainObserver<Type, VState, Other=Self>: OrderedDomainObserver<Type, VState>
+where
+    VState: VariableState ,
+    Type: Ord + Eq,
+    Other: OrderedDomainObserver<Type, VState>,
+{
+    /// Forces the domain of `self` to satisfies a precedence relation
+    /// with `value`.
+    /// Returns an error of type `VariableError::DomainWipeout` if
+    /// the minimal value of `self` is greater or equal to the maximal
+    /// value of `value`, otherwise returns the correct `VariableState`.
+    ///
+    /// # Parameters
+    /// * `value` - The variable to compare to.
+    fn less_than<Observer>(
+        &mut self,
+        observer: &mut Observer,
+        value: &mut Other,
+    ) -> Result<(VState, VState), VariableError>
+            where Observer: VariableObserver<VState>
+    {
+        let state_self = self.strict_upperbound(observer, value.unchecked_max().clone())?;
+        let state_value = value.strict_lowerbound(observer, self.unchecked_min().clone())?;
+        Ok((state_self, state_value))
+    }
+    /// Forces the domain of `self` to satisfies a weak precedence relation
+    /// with `value`.
+    /// Returns an error of type `VariableError::DomainWipeout` if
+    /// the minimal value of `self` is greater to the maximal
+    /// value of `value`, otherwise returns the correct `VariableState`.
+    ///
+    /// # Parameters
+    /// * `value` - The variable to compare to.
+    fn less_or_equal_than<Observer>(
+        &mut self,
+        observer: &mut Observer,
+        value: &mut Other,
+    ) -> Result<(VState, VState), VariableError>
+            where Observer: VariableObserver<VState>
+    {
+        let state_self = self.weak_upperbound(observer, value.unchecked_max())?;
+        let state_value = value.weak_lowerbound(observer, self.unchecked_min())?;
+        Ok((state_self, state_value))
+    }
+    /// Forces the domain of `value` to satisfies a strict precedence relation
+    /// with `self`.
+    /// Returns an error of type `VariableError::DomainWipeout` if
+    /// the minimal value of `value` is greater or equal to the maximal
+    /// value of `self`, otherwise returns the correct `VariableState`.
+    ///
+    /// # Parameters
+    /// * `value` - The variable to compare to.
+    fn greater_than<Observer>(
+        &mut self,
+        observer: &mut Observer,
+        value: &mut Other,
+    ) -> Result<(VState, VState), VariableError>
+            where Observer: VariableObserver<VState>
+    {
+        let state_self = self.strict_lowerbound(observer, value.unchecked_min())?;
+        let state_value = value.strict_upperbound(observer, self.unchecked_max())?;
+        Ok((state_self, state_value))
+    }
+
+    /// Forces the domain of `value` to satisfies a weak precedence relation
+    /// with `self`.
+    /// Returns an error of type `VariableError::DomainWipeout` if
+    /// the minimal value of `value` is greater to the maximal
+    /// value of `self`, otherwise returns the correct `VariableState`.
+    ///
+    /// # Parameters
+    /// * `value` - The variable to compare to.
+    fn greater_or_equal_than<Observer>(
+        &mut self,
+        observer: &mut Observer,
+        value: &mut Other,
+    ) -> Result<(VState, VState), VariableError>
+            where Observer: VariableObserver<VState>
+    {
+        let state_self = self.weak_lowerbound(observer, value.unchecked_min())?;
+        let state_value = value.weak_upperbound(observer, self.unchecked_max())?;
+        Ok((state_self, state_value))
+    }
+    /// Forces the domains of two variables two have the same bounds (the does not imply to have
+    /// the same domain).
+    /// Returns an error of type `VariableError::DomainWipeout` if
+    /// the two variables can't have the same bounds (i.e. no common value),
+    /// otherwise returns the correct `VariableState`.
+    ///
+    /// # Parameters
+    /// * `value` - The variable to compare to.
+    fn equal_bounds_lazy<Observer>(
+        &mut self,
+        observer: &mut Observer,
+        value: &mut Other,
+    ) -> Result<(VState, VState), VariableError>
+            where Observer: VariableObserver<VState>
+    {
+        let (x1,y1) = self.less_or_equal_than(observer, value)?;
+        let (x2,y2) = self.greater_or_equal_than(observer, value)?;
+
+        Ok((x1|x2, y1|y2))
+    }
+
+    fn equal_bounds<Observer>(
+        &mut self,
+        observer: &mut Observer,
+        value: &mut Other,
+    ) -> Result<(VState, VState), VariableError>
+            where Observer: VariableObserver<VState>
+    {
+        let mut x = VState::null();
+        let mut y = VState::null();
+        loop {
+            let (x1,y1) = self.less_or_equal_than(observer, value)?;
+            let (x2,y2) = self.greater_or_equal_than(observer, value)?;
+            let new_x = x1 | x2;
+            let new_y = y1 | y2;
+            if (new_x == VState::null()) && (new_y == VState::null()) {
+                break;
+            }
+            x = x | new_x;
+            y = y | new_y;
+        }
+        Ok((x, y))
+    }
 }

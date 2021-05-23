@@ -1,4 +1,4 @@
-use crusp_core::{Subsumed};
+use crusp_core::{Subsumed, Nullable};
 #[cfg(feature = "observer")]
 use crusp_core::{VariableId};
 use std::marker::PhantomData;
@@ -34,7 +34,7 @@ pub enum VariableError {
     /// The domain of the variable is empty.
     DomainWipeout,
 }
-pub trait VariableState: std::ops::BitOr<Output = Self> + Subsumed + Sized {}
+pub trait VariableState: std::ops::BitOr<Output = Self> + Subsumed + Sized + Nullable + Eq + PartialEq {}
 
 #[cfg(feature = "observer")]
 pub trait CruspVariable<Type>: Variable<Type> {

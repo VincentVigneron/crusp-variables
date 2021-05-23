@@ -357,49 +357,49 @@ where
         self.domain.last()
     }
 
-    fn strict_upperbound(&mut self, ub: T) -> Result<IntVariableState, VariableError> {
-        if *self.unchecked_max() < ub {
+    fn strict_upperbound(&mut self, ub: &T) -> Result<IntVariableState, VariableError> {
+        if *self.unchecked_max() < *ub {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_min() >= ub {
+        } else if *self.unchecked_min() >= *ub {
             Err(VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().rposition(|&val| val < ub).unwrap();
+            let index = self.domain.iter().rposition(|&val| val < *ub).unwrap();
             self.domain.truncate(index + 1);
             Ok(IntVariableState::BoundsChange)
         }
     }
 
-    fn weak_upperbound(&mut self, ub: T) -> Result<IntVariableState, VariableError> {
-        if *self.unchecked_max() <= ub {
+    fn weak_upperbound(&mut self, ub: &T) -> Result<IntVariableState, VariableError> {
+        if *self.unchecked_max() <= *ub {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_min() > ub {
+        } else if *self.unchecked_min() > *ub {
             Err(VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().rposition(|&val| val <= ub).unwrap();
+            let index = self.domain.iter().rposition(|&val| val <= *ub).unwrap();
             self.domain.truncate(index + 1);
             Ok(IntVariableState::BoundsChange)
         }
     }
 
-    fn strict_lowerbound(&mut self, lb: T) -> Result<IntVariableState, VariableError> {
-        if *self.unchecked_min() > lb {
+    fn strict_lowerbound(&mut self, lb: &T) -> Result<IntVariableState, VariableError> {
+        if *self.unchecked_min() > *lb {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_max() <= lb {
+        } else if *self.unchecked_max() <= *lb {
             Err(VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().position(|&val| val > lb).unwrap();
+            let index = self.domain.iter().position(|&val| val > *lb).unwrap();
             self.domain.drain(0..index);
             Ok(IntVariableState::BoundsChange)
         }
     }
 
-    fn weak_lowerbound(&mut self, lb: T) -> Result<IntVariableState, VariableError> {
-        if *self.unchecked_min() >= lb {
+    fn weak_lowerbound(&mut self, lb: &T) -> Result<IntVariableState, VariableError> {
+        if *self.unchecked_min() >= *lb {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_max() < lb {
+        } else if *self.unchecked_max() < *lb {
             Err(VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().position(|&val| val >= lb).unwrap();
+            let index = self.domain.iter().position(|&val| val >= *lb).unwrap();
             self.domain.drain(0..index);
             Ok(IntVariableState::BoundsChange)
         }
@@ -421,17 +421,17 @@ where
     fn strict_upperbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        ub: T,
+        ub: &T,
     ) -> Result<IntVariableState, VariableError>
     where
         Observer: VariableObserver<IntVariableState>,
     {
-        if *self.unchecked_max() < ub {
+        if *self.unchecked_max() < *ub {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_min() >= ub {
+        } else if *self.unchecked_min() >= *ub {
             observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().rposition(|&val| val < ub).unwrap();
+            let index = self.domain.iter().rposition(|&val| val < *ub).unwrap();
             self.domain.truncate(index + 1);
             observer.push_change(self.id, IntVariableState::BoundsChange)
         }
@@ -440,17 +440,17 @@ where
     fn weak_upperbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        ub: T,
+        ub: &T,
     ) -> Result<IntVariableState, VariableError>
     where
         Observer: VariableObserver<IntVariableState>,
     {
-        if *self.unchecked_max() <= ub {
+        if *self.unchecked_max() <= *ub {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_min() > ub {
+        } else if *self.unchecked_min() > *ub {
             observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().rposition(|&val| val <= ub).unwrap();
+            let index = self.domain.iter().rposition(|&val| val <= *ub).unwrap();
             self.domain.truncate(index + 1);
             observer.push_change(self.id,  IntVariableState::BoundsChange)
         }
@@ -459,17 +459,17 @@ where
     fn strict_lowerbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        lb: T,
+        lb: &T,
     ) -> Result<IntVariableState, VariableError>
     where
         Observer: VariableObserver<IntVariableState>,
     {
-        if *self.unchecked_min() > lb {
+        if *self.unchecked_min() > *lb {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_max() <= lb {
+        } else if *self.unchecked_max() <= *lb {
             observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().position(|&val| val > lb).unwrap();
+            let index = self.domain.iter().position(|&val| val > *lb).unwrap();
             self.domain.drain(0..index);
             observer.push_change(self.id,  IntVariableState::BoundsChange)
         }
@@ -478,17 +478,17 @@ where
     fn weak_lowerbound<Observer>(
         &mut self,
         observer: &mut Observer,
-        lb: T,
+        lb: &T,
     ) -> Result<IntVariableState, VariableError>
     where
         Observer: VariableObserver<IntVariableState>,
     {
-        if *self.unchecked_min() >= lb {
+        if *self.unchecked_min() >= *lb {
             Ok(IntVariableState::NoChange)
-        } else if *self.unchecked_max() < lb {
+        } else if *self.unchecked_max() < *lb {
             observer.push_error(self.id, VariableError::DomainWipeout)
         } else {
-            let index = self.domain.iter().position(|&val| val >= lb).unwrap();
+            let index = self.domain.iter().position(|&val| val >= *lb).unwrap();
             self.domain.drain(0..index);
             observer.push_change(self.id,  IntVariableState::BoundsChange)
         }
